@@ -1,10 +1,26 @@
 # Deployment Platforms
 
-## ⭐ Recommended: Oracle Cloud Always Free Tier
+## ⭐ Option 1: Hugging Face Spaces (Recommended for ML/AI)
 
-**Resources:** 24GB RAM, 4 ARM CPUs, 100GB storage - **FOREVER FREE**
+**Resources:** ~2GB RAM, free tier with auto-deploy from GitHub  
+**Setup Time:** ~5 minutes  
+**Best For:** Quick deployment, ML project showcase, community integration
 
-This is the best choice for your project. See [ORACLE_DEPLOYMENT.md](ORACLE_DEPLOYMENT.md) for complete setup guide.
+Perfect for ML/AI projects. Automatic deployment when you push to GitHub.
+
+👉 See [HF_SPACES_DEPLOYMENT.md](HF_SPACES_DEPLOYMENT.md) for step-by-step guide
+
+---
+
+## ⭐ Option 2: Oracle Cloud Always Free Tier
+
+**Resources:** 24GB RAM, 4 ARM CPUs, 100GB storage - **FOREVER FREE**  
+**Setup Time:** ~20 minutes  
+**Best For:** Production, unlimited resources, full control
+
+Best for scaling and production workloads with no cost limits.
+
+👉 See [ORACLE_DEPLOYMENT.md](ORACLE_DEPLOYMENT.md) for complete setup guide
 
 ---
 
