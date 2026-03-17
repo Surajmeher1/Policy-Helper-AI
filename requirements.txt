@@ -3,3 +3,11 @@ torch
 language-tool-python
 textstat
 flask
+flask-sqlalchemy
+flask-migrate
+flask-mail
+gunicorn
+python-dotenv
+requests
+itsdangerous
+werkzeug
