@@ -155,68 +155,6 @@ answer = ask_groq("What is a privacy policy?")
 print(answer)
 ```
 
-## Useful Colab Tips
-
-### Save Your Notebook
-```
-Ctrl+S (or click File → Save)
-```
-Saves to Google Drive automatically!
-
-### Upload Files
-```python
-from google.colab import files
-uploaded = files.upload()
-# Select file from your computer
-```
-
-### Download Results
-```python
-files.download('results.txt')
-```
-
-### Use GPU
-```python
-# Check if GPU is available
-import torch
-print(torch.cuda.is_available())  # Should print True
-print(torch.cuda.get_device_name(0))  # Shows GPU type
-```
-
-### Increase Runtime (if needed)
-- Runtime → Change runtime type → GPU or TPU (select one)
-
-## Useful Commands
-
-```python
-# Current directory
-!pwd
-
-# List files
-!ls -la
-
-# Install package
-!pip install package_name
-
-# Check Python version
-!python --version
-
-# Run Python file
-!python script.py
-```
-
-## Save to Google Drive
-
-```python
-# Save results
-with open('/content/drive/MyDrive/results.txt', 'w') as f:
-    f.write("Your results here")
-
-# Read from Drive
-with open('/content/drive/MyDrive/.env', 'r') as f:
-    print(f.read())
-```
-
 ## Next: Deploy When Ready
 
 Once you're happy with your code in Colab:
@@ -224,26 +162,8 @@ Once you're happy with your code in Colab:
 2. Upload to GitHub
 3. Deploy on HF Spaces or Replit (much simpler than Flask!)
 
-## Common Issues
-
-**"CUDA out of memory"**
-```python
-# Reduce batch size or use smaller model
-# Or switch to CPU: model = model.cpu()
-```
-
-**"Model not found"**
-- Check HF_TOKEN is correct
-- Models require authentication token
-
-**"Too slow"**
-- Enable GPU: Runtime → Change runtime type
-- Use smaller model from Hugging Face
-
 ---
 
 **Start here:** [colab.research.google.com](https://colab.research.google.com)
 
-Click **"+ New notebook"** and paste the code above!
-
-Your project will run with **12GB+ RAM and free GPU** 🚀
+Click **"+ New notebook"** and follow the steps above!
