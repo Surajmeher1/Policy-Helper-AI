@@ -1,6 +1,20 @@
-# Deployment Guide - Render
+# Deployment Platforms
 
-Your project is now configured for deployment on **Render**. Follow these steps:
+## ⭐ Recommended: Oracle Cloud Always Free Tier
+
+**Resources:** 24GB RAM, 4 ARM CPUs, 100GB storage - **FOREVER FREE**
+
+This is the best choice for your project. See [ORACLE_DEPLOYMENT.md](ORACLE_DEPLOYMENT.md) for complete setup guide.
+
+---
+
+## Alternative: Render
+
+**Resources:** 512MB RAM free tier (may be limiting for ML models)
+
+If you prefer Render's simplicity, follow the guide below.
+
+---
 
 ## Step 1: Create a Render Account
 1. Go to [render.com](https://render.com)
