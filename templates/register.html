@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Register — Policy Helper AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Literata:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+      :root {
+        --bg: #212121;
+        --bg-2: #2f2f2f;
+        --bg-3: #3a3a3a;
+        --border: #404040;
+        --border-subtle: #333;
+        --text: #ececec;
+        --text-muted: #9b9b9b;
+        --text-dim: #6b6b6b;
+        --gold: #c9a84c;
+        --gold-soft: rgba(201,168,76,0.1);
+        --gold-border: rgba(201,168,76,0.28);
+        --gold-glow: rgba(201,168,76,0.18);
+        --danger-bg: rgba(248,113,113,0.08);
+        --danger-border: rgba(248,113,113,0.28);
+        --danger-text: #fca5a5;
+        --success-bg: rgba(52,211,153,0.08);
+        --success-border: rgba(52,211,153,0.25);
+        --success-text: #6ee7b7;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --radius-xs: 6px;
+      }
+
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body {
+        height: 100%;
+        font-family: 'DM Sans', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 14.5px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Background image layer */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: url('{{ url_for("static", filename="picture1.jpg") }}');
+        background-size: cover;
+        background-position: center;
+        filter: blur(10px) brightness(0.18);
+        z-index: 0;
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 28px 16px;
+      }
+
+      /* Card */
+      .card {
+        width: 100%;
+        max-width: 420px;
+        background: rgba(28, 28, 28, 0.88);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 36px 32px 32px;
+        backdrop-filter: blur(24px);
+        box-shadow: 0 28px 72px rgba(0,0,0,0.55);
+        animation: fadeUp 0.32s ease both;
+      }
+
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Brand */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 24px;
+      }
+
+      .logo {
+        width: 38px; height: 38px;
+        background: var(--gold-soft);
+        border: 1px solid var(--gold-border);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Literata', Georgia, serif;
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--gold);
+        flex-shrink: 0;
+      }
+
+      .brand-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .brand-sub {
+        font-size: 11.5px;
+        color: var(--text-dim);
+        margin-top: 1px;
+      }
+
+      /* Title */
+      .card-title {
+        font-family: 'Literata', Georgia, serif;
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.02em;
+        margin-bottom: 22px;
+      }
+
+      /* Flash alerts */
+      .alert {
+        padding: 10px 13px;
+        border-radius: var(--radius-xs);
+        font-size: 13px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        line-height: 1.5;
+      }
+      .alert-danger  { background: var(--danger-bg);  border: 1px solid var(--danger-border);  color: var(--danger-text); }
+      .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
+      .alert-warning { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); color: #fcd34d; }
+      .alert-info    { background: rgba(99,179,237,0.08); border: 1px solid rgba(99,179,237,0.22); color: #93c5fd; }
+
+      /* Fields */
+      .field { margin-bottom: 16px; }
+
+      label {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+        letter-spacing: 0.01em;
+      }
+
+      .field-hint {
+        font-size: 11.5px;
+        color: var(--text-dim);
+        margin-top: 5px;
+        line-height: 1.45;
+      }
+
+      .input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .input-icon {
+        position: absolute;
+        left: 13px;
+        color: var(--text-dim);
+        font-size: 14px;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      input[type="text"],
+      input[type="password"],
+      input[type="email"] {
+        width: 100%;
+        padding: 11px 14px 11px 38px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-size: 14.5px;
+        font-family: 'DM Sans', sans-serif;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+
+      input::placeholder { color: var(--text-dim); }
+
+      input:focus {
+        border-color: var(--gold-border);
+        box-shadow: 0 0 0 3px var(--gold-glow);
+      }
+
+      input.error {
+        border-color: rgba(248,113,113,0.55) !important;
+        box-shadow: 0 0 0 3px rgba(248,113,113,0.1) !important;
+      }
+
+      .field-error {
+        font-size: 11.5px;
+        color: #fca5a5;
+        margin-top: 5px;
+        display: none;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .field-error.show { display: flex; }
+
+      /* Password toggle */
+      .pw-toggle {
+        position: absolute;
+        right: 12px;
+        background: none;
+        border: none;
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px;
+        border-radius: 4px;
+        transition: color 0.15s;
+        display: flex;
+        align-items: center;
+      }
+      .pw-toggle:hover { color: var(--text-muted); }
+
+      /* Password strength */
+      .strength-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 9px;
+      }
+
+      .pw-strength {
+        flex: 1;
+        height: 5px;
+        background: var(--bg-3);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .pw-strength-bar {
+        height: 100%;
+        width: 0%;
+        border-radius: 10px;
+        transition: width 0.3s ease, background-color 0.3s ease;
+      }
+
+      .strength-label {
+        font-size: 11.5px;
+        color: var(--text-dim);
+        min-width: 90px;
+        text-align: right;
+        transition: color 0.2s;
+      }
+
+      /* Submit button */
+      .submit-btn {
+        width: 100%;
+        padding: 12px;
+        background: var(--gold);
+        border: none;
+        border-radius: var(--radius-sm);
+        color: #1a1a1a;
+        font-size: 14.5px;
+        font-weight: 700;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        letter-spacing: 0.01em;
+        margin-top: 4px;
+        margin-bottom: 18px;
+      }
+
+      .submit-btn:hover {
+        background: #d4af37;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px var(--gold-glow);
+      }
+
+      .submit-btn:active { transform: translateY(0); }
+
+      /* Divider */
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .divider::before, .divider::after {
+        content: ''; flex: 1; height: 1px; background: var(--border-subtle);
+      }
+      .divider span { font-size: 11.5px; color: var(--text-dim); }
+
+      /* Footer */
+      .footer-text {
+        text-align: center;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .footer-text a {
+        color: var(--gold);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.15s;
+      }
+      .footer-text a:hover { color: #d4af37; text-decoration: underline; }
+
+      @media (max-width: 480px) {
+        .card { padding: 28px 20px 24px; }
+        .card-title { font-size: 20px; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <div class="card">
+
+        <!-- Brand -->
+        <div class="brand">
+          <div class="logo">PS</div>
+          <div>
+            <div class="brand-name">Policy Helper AI</div>
+            <div class="brand-sub">Simple language for complex policies</div>
+          </div>
+        </div>
+
+        <div class="card-title">Create an account</div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else ('warning' if category == 'warning' else ('danger' if category == 'danger' else 'info')) }}">
+                <i class="bi bi-{{ 'check-circle' if category == 'success' else ('exclamation-triangle' if category == 'warning' else 'x-circle') }}"></i>
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register') }}" novalidate id="registerForm">
+
+          <!-- Username -->
+          <div class="field">
+            <label for="username">Username</label>
+            <div class="input-wrap">
+              <i class="bi bi-person input-icon"></i>
+              <input type="text" id="username" name="username"
+                     placeholder="Choose a username"
+                     aria-label="username"
+                     autocomplete="username"
+                     required minlength="3" />
+            </div>
+            <div class="field-error" id="usernameError"><i class="bi bi-exclamation-circle"></i><span></span></div>
+            <div class="field-hint">3–30 characters · letters, numbers, underscore allowed</div>
+          </div>
+
+          <!-- Email -->
+          <div class="field">
+            <label for="email">Email address</label>
+            <div class="input-wrap">
+              <i class="bi bi-envelope input-icon"></i>
+              <input type="email" id="email" name="email"
+                     placeholder="name@example.com"
+                     aria-label="email"
+                     autocomplete="email"
+                     required />
+            </div>
+            <div class="field-error" id="emailError"><i class="bi bi-exclamation-circle"></i><span></span></div>
+          </div>
+
+          <!-- Password -->
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <i class="bi bi-lock input-icon"></i>
+              <input type="password" id="password" name="password"
+                     placeholder="Choose a strong password"
+                     aria-label="password"
+                     autocomplete="new-password"
+                     required minlength="8"
+                     style="padding-right:40px;" />
+              <button type="button" class="pw-toggle" id="pwToggle" title="Show / hide password" tabindex="0">
+                <i class="bi bi-eye" id="pwIcon"></i>
+              </button>
+            </div>
+
+            <!-- Strength meter -->
+            <div class="strength-row">
+              <div class="pw-strength">
+                <div class="pw-strength-bar" id="pwStrengthBar"></div>
+              </div>
+              <div class="strength-label" id="pwStrengthText"></div>
+            </div>
+
+            <div class="field-error" id="passwordError"><i class="bi bi-exclamation-circle"></i><span></span></div>
+            <div class="field-hint">At least 8 characters · mix letters, numbers and symbols</div>
+          </div>
+
+          <button type="submit" class="submit-btn">
+            <i class="bi bi-person-plus"></i>
+            Create account
+          </button>
+
+          <div class="divider"><span>or</span></div>
+
+          <div class="footer-text">
+            Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+          </div>
+
+        </form>
+      </div>
+    </main>
+
+    <script>
+      // ── Password show/hide ──
+      const pwInput  = document.getElementById('password');
+      const pwToggle = document.getElementById('pwToggle');
+      const pwIcon   = document.getElementById('pwIcon');
+
+      pwToggle.addEventListener('click', () => {
+        const hide = pwInput.type === 'password';
+        pwInput.type = hide ? 'text' : 'password';
+        pwIcon.className = hide ? 'bi bi-eye-slash' : 'bi bi-eye';
+      });
+      pwToggle.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pwToggle.click(); }
+      });
+
+      // ── Password strength ──
+      const pwBar  = document.getElementById('pwStrengthBar');
+      const pwText = document.getElementById('pwStrengthText');
+
+      const strengthColors = ['#f87171','#f87171','#fb923c','#facc15','#34d399'];
+      const strengthLabels = ['','Very weak','Weak','Fair','Strong','Very strong'];
+
+      function scorePassword(pw) {
+        let s = 0;
+        if (!pw) return 0;
+        if (pw.length >= 8)  s++;
+        if (pw.length >= 12) s++;
+        if (/[A-Z]/.test(pw)) s++;
+        if (/[0-9]/.test(pw)) s++;
+        if (/[^A-Za-z0-9]/.test(pw)) s++;
+        return Math.min(s, 5);
+      }
+
+      function updateStrength() {
+        const s = scorePassword(pwInput.value);
+        const pct = pwInput.value.length ? Math.max(10, Math.round((s / 5) * 100)) : 0;
+        pwBar.style.width = pct + '%';
+        pwBar.style.backgroundColor = strengthColors[Math.max(0, s - 1)] || 'transparent';
+        pwText.textContent = pwInput.value.length ? (strengthLabels[s] || '') : '';
+        pwText.style.color = strengthColors[Math.max(0, s - 1)] || 'var(--text-dim)';
+      }
+
+      pwInput.addEventListener('input', updateStrength);
+
+      // ── Inline validation helpers ──
+      function showError(fieldId, errorId, msg) {
+        const el = document.getElementById(fieldId);
+        const err = document.getElementById(errorId);
+        el.classList.add('error');
+        err.querySelector('span').textContent = msg;
+        err.classList.add('show');
+      }
+
+      function clearError(fieldId, errorId) {
+        const el = document.getElementById(fieldId);
+        const err = document.getElementById(errorId);
+        el.classList.remove('error');
+        err.classList.remove('show');
+      }
+
+      // Clear errors on input
+      document.getElementById('username').addEventListener('input', () => clearError('username','usernameError'));
+      document.getElementById('email').addEventListener('input',    () => clearError('email','emailError'));
+      pwInput.addEventListener('input', () => clearError('password','passwordError'));
+
+      // ── Form validation ──
+      document.getElementById('registerForm').addEventListener('submit', e => {
+        let valid = true;
+
+        const username = document.getElementById('username');
+        const email    = document.getElementById('email');
+
+        if (!username.value.trim() || username.value.trim().length < 3) {
+          showError('username','usernameError','Username must be at least 3 characters.');
+          if (valid) { username.focus(); }
+          valid = false;
+        }
+
+        if (!email.value.trim() || !/.+@.+\..+/.test(email.value)) {
+          showError('email','emailError','Please enter a valid email address.');
+          if (valid) { email.focus(); }
+          valid = false;
+        }
+
+        if (!pwInput.value || pwInput.value.length < 8) {
+          showError('password','passwordError','Password must be at least 8 characters.');
+          if (valid) { pwInput.focus(); }
+          valid = false;
+        }
+
+        if (!valid) e.preventDefault();
+      });
+    </script>
+  </body>
+</html>
