@@ -399,10 +399,25 @@ def clear_chat_history_api():
 # ---------------------------------------------------------
 # NLP MODEL + TOOLS (original logic)
 # ---------------------------------------------------------
-tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME, token=HF_TOKEN)
-model = AutoModelForSeq2SeqLM.from_pretrained(HF_MODEL_NAME, token=HF_TOKEN)
+# Lazy load BART model only when needed (not at startup)
+tokenizer = None
+model = None
 
 tool = language_tool_python.LanguageTool('en-US')
+
+def load_model():
+    """Load BART model lazily when first needed"""
+    global tokenizer, model
+    if tokenizer is None or model is None:
+        try:
+            print("Loading BART model... this may take a moment")
+            tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME, token=HF_TOKEN)
+            model = AutoModelForSeq2SeqLM.from_pretrained(HF_MODEL_NAME, token=HF_TOKEN)
+            print("BART model loaded successfully")
+        except Exception as e:
+            print(f"Error loading BART model: {e}")
+            raise
+    return tokenizer, model
 
 LEXICAL_MAP = {
     "pursuant to": "under",
@@ -490,9 +505,13 @@ def improve_readability(text):
     return text
 
 def ml_simplify(text):
-    inp = tokenizer.encode(text, return_tensors="pt", max_length=1024, truncation=True)
-    output = model.generate(inp, max_length=150, min_length=40, num_beams=4)
-    summarized = tokenizer.decode(output[0], skip_special_tokens=True)
+    global tokenizer, model
+    # Load model on first use
+    tok, mdl = load_model()
+    
+    inp = tok.encode(text, return_tensors="pt", max_length=1024, truncation=True)
+    output = mdl.generate(inp, max_length=150, min_length=40, num_beams=4)
+    summarized = tok.decode(output[0], skip_special_tokens=True)
     summarized = simplify_lexically(summarized)
     summarized = correct_grammar(summarized)
     return summarized.strip()
