@@ -94,11 +94,13 @@ def log_activity(user_obj_or_username, action, details=None):
         app.logger.exception("Failed to log activity")
 
 # ---------------------------------------------------------
-# HOME
+# HOME / LANDING PAGE
 # ---------------------------------------------------------
 @app.route('/')
 def home():
-    return redirect(url_for('register'))
+    if "username" in session:
+        return redirect(url_for('index'))
+    return render_template("landing.html")
 
 # ---------------------------------------------------------
 # REGISTER
