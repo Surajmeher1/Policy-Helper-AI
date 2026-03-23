@@ -519,32 +519,32 @@ def ml_simplify(text):
     return summarized.strip()
 
 def highlight_entities(text):
-    # Dates, durations
+    # Dates, durations - use CSS class for theme compatibility
     text = re.sub(r'\b\d+\s+(?:hours?|days?|weeks?|months?|years?)\b',
-                  r'<span style="background-color:#fdd835;">\g<0></span>', text, flags=re.IGNORECASE)
+                  r'<span class="date">\g<0></span>', text, flags=re.IGNORECASE)
     text = re.sub(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',
-                  r'<span style="background-color:#fdd835;">\g<0></span>', text)
+                  r'<span class="date">\g<0></span>', text)
     text = re.sub(r'\b\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{4}\b',
-                  r'<span style="background-color:#fdd835;">\g<0></span>', text, flags=re.IGNORECASE)
+                  r'<span class="date">\g<0></span>', text, flags=re.IGNORECASE)
 
-    # Currency
+    # Currency - use CSS class for theme compatibility
     text = re.sub(r'\b(?:₹|Rs\.?|INR)\s?\d+(?:,\d{3})*(?:\.\d{2})?\b',
-                  r'<span style="background-color:#c5e1a5;">\g<0></span>', text)
+                  r'<span class="amount">\g<0></span>', text)
     text = re.sub(r'\b(?:₹|Rs\.?|INR)\s?[\d,]+(?:\.\d+)?\s?(lakh|crore)?\b', 
                   r'<span class="amount">\g<0></span>', text, flags=re.IGNORECASE)
 
-    # Organizations
+    # Organizations - use CSS class for theme compatibility
     text = re.sub(r'\b(?:insurance company|RBI|SEBI|IRDAI|UIDAI|Ministry of [A-Za-z ]+|Government of India|Income Tax Department|Central Government|state government|company)\b',
-                  r'<span style="background-color:#b3e5fc;">\g<0></span>', text, flags=re.IGNORECASE)
+                  r'<span class="org">\g<0></span>', text, flags=re.IGNORECASE)
 
-    # Proper nouns
+    # Proper nouns - use CSS class for theme compatibility
     text = re.sub(r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b',
-                  r'<span style="background-color:#e1bee7;">\g<0></span>', text)
+                  r'<span class="name">\g<0></span>', text)
 
-    # Important keywords
+    # Important keywords - use CSS class for theme compatibility
     keywords = ['must', 'rule', 'act', 'law', 'permission', 'penalty', 'request for payment', 'denial']
     for word in keywords:
-        text = re.sub(rf'\b({word})\b', r'<span style="background-color:#ffcdd2;">\1</span>', text, flags=re.IGNORECASE)
+        text = re.sub(rf'\b({word})\b', r'<span class="keyword">\1</span>', text, flags=re.IGNORECASE)
 
     return text.strip()
 
