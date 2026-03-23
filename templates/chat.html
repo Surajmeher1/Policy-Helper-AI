@@ -27,6 +27,36 @@
             --radius-sm: 8px;
         }
 
+        /* ── Light theme overrides ── */
+        body.light {
+            --bg: #f7f7f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #ebebeb;
+            --bg-hover: #e5e5e5;
+            --border: #d4d4d4;
+            --border-subtle: #e5e5e5;
+            --text: #171717;
+            --text-muted: #525252;
+            --text-dim: #a3a3a3;
+            --gold: #9a6f10;
+            --gold-soft: rgba(154,111,16,0.08);
+            --gold-border: rgba(154,111,16,0.25);
+            --user-bg: #f0ede5;
+            --ai-bg: transparent;
+            --input-bg: #ffffff;
+        }
+
+        body.light .topbar { background: #fafafa; border-bottom-color: var(--border-subtle); }
+        body.light .messages-area { background: #f7f7f5; }
+        body.light .input-area { background: #ffffff; border-top-color: var(--border-subtle); }
+        body.light .bubble-ai { color: #1f2937; }
+        body.light .bubble-ai p { color: #1f2937; }
+        body.light .bubble-ai h2, body.light .bubble-ai .ai-heading { color: #111827; }
+        body.light .bubble-ai h3, body.light .bubble-ai .ai-subheading { color: #374151; }
+        body.light .bubble-ai strong { color: #111827; }
+        body.light .bubble-ai .ai-list-item { color: #374151; }
+        body.light .bubble-ai .ai-numbered-list li { color: #374151; }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         html, body {
@@ -36,6 +66,12 @@
             color: var(--text);
             font-size: 15px;
             line-height: 1.6;
+        }
+
+        /* Smooth transitions */
+        html, body, .layout, .main, .topbar, .messages-area, .input-area, .messages-inner,
+        .icon-btn, .btn-clear, .chip, .input-box, .bubble-user, .bubble-ai {
+            transition: background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
         }
 
         .layout {
@@ -573,6 +609,9 @@
                 </div>
             </div>
             <div class="topbar-actions">
+                <button id="themeToggle" class="icon-btn" title="Toggle theme">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M8 2v2"/><path d="M14 8h2"/><path d="M8 12v2"/><path d="M2 8H0"/></svg>
+                </button>
                 <a href="/index" class="icon-btn" title="Home">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l6-6 6 6M3 7v7h4v-4h2v4h4V7"/></svg>
                 </a>
@@ -936,6 +975,37 @@
         document.getElementById('queryInput').focus();
         scrollBottom();
     });
+
+    /* ── Theme toggle ── */
+    const themeToggle = document.getElementById('themeToggle');
+
+    function applyTheme(mode) {
+        if (mode === 'light') {
+            document.body.classList.add('light');
+            if (themeToggle) {
+                themeToggle.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M8 2v2"/><path d="M14 8h2"/><path d="M8 12v2"/><path d="M2 8H0"/></svg>';
+                themeToggle.title = 'Switch to dark mode';
+            }
+        } else {
+            document.body.classList.remove('light');
+            if (themeToggle) {
+                themeToggle.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M8 2v2"/><path d="M14 8h2"/><path d="M8 12v2"/><path d="M2 8H0"/></svg>';
+                themeToggle.title = 'Switch to light mode';
+            }
+        }
+        try { localStorage.setItem('ps-theme', mode); } catch(e) {}
+    }
+
+    // Restore saved theme immediately
+    try {
+        applyTheme(localStorage.getItem('ps-theme') || 'dark');
+    } catch(e) { applyTheme('dark'); }
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            applyTheme(document.body.classList.contains('light') ? 'dark' : 'light');
+        });
+    }
 </script>
 </body>
 </html>
