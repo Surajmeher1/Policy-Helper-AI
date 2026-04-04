@@ -31,9 +31,19 @@ echo "================================"
 echo ""
 
 # Navigate to app directory
+if [ ! -d "$APP_DIR" ]; then
+    error "Application directory not found: $APP_DIR. Deploy the app first."
+    exit 1
+fi
+
 cd "$APP_DIR"
 
 log "Current directory: $(pwd)"
+
+if [ ! -f "$APP_DIR/requirements.txt" ]; then
+    error "requirements.txt not found in $APP_DIR. The deployment looks incomplete. Re-run the deployment script or restore the repository files first."
+    exit 1
+fi
 
 # Pull latest code
 log "Pulling latest code from repository..."

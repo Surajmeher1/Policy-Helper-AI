@@ -40,9 +40,10 @@ This guide will help you deploy Policy Helper AI to AWS EC2 for under $10/month.
   - AMI: `ami-0c02fb55956c7d316` (us-east-1)
 
 **Step 2: Instance Type**
-- **Instance Type**: `t3.medium` (recommended for ML model)
-  - (or `t2.micro` for minimum cost, but slower)
-  - **Note**: If staying in free tier, use `t2.micro`
+- **Instance Type**: `c7i-flex.large` (NOT FREE TIER)
+  - Better performance: 2 CPUs, 8GB RAM
+  - Cost: ~$40-50/month
+  - Good for handling ML models and heavy processing
 
 **Step 3: Key Pair**
 - **Create new key pair**
@@ -128,7 +129,7 @@ sudo chown ubuntu:ubuntu /var/www/policy-helper-ai
 cd /var/www/policy-helper-ai
 
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/Policy-Helper-AI.git . 
+git clone https://github.com/Surajmeher1/Policy-Helper-AI.git . 
 # (or upload your project files via SCP/SFTP)
 
 # Create virtual environment
@@ -346,13 +347,12 @@ sudo tail -f /var/log/nginx/error.log
 
 | Service | Free Tier | Cost |
 |---------|-----------|------|
-| **EC2 t2.micro** | 750 hrs/month | $0 |
-| **t3.medium** (if needed) | Not free | ~$20 |
+| **EC2 c7i-flex.large** | NOT free | ❌ ~$40-50/month |
 | **Data Transfer** | 100GB/month (region) | $0 in region |
 | **Elastic IP** | Free if in-use | $0 |
 | **RDS PostgreSQL** | 12 months free micro | $0 or ~$15 |
 | **S3 Storage** | 5GB free | $0 (10GB) |
-| **Total** | | **~$0-5/month** |
+| **Total (c7i-flex.large)** | | **❌ ~$40-50/month** |
 
 ---
 

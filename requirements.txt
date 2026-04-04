@@ -11,3 +11,5 @@ python-dotenv
 requests
 itsdangerous
 werkzeug
+pymysql
+psycopg2-binary

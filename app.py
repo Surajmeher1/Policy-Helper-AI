@@ -27,7 +27,30 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-key-change-in-production")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+# Database Configuration - Supports SQLite (default) or AWS RDS
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite')
+
+if DB_TYPE.lower() == 'mysql':
+    # AWS RDS MySQL Configuration
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_USER = os.getenv('DB_USER', 'admin')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    DB_NAME = os.getenv('DB_NAME', 'policy_helper_ai')
+    DB_PORT = os.getenv('DB_PORT', 3306)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+elif DB_TYPE.lower() == 'postgresql':
+    # AWS RDS PostgreSQL Configuration
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_USER = os.getenv('DB_USER', 'postgres')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    DB_NAME = os.getenv('DB_NAME', 'policy_helper_ai')
+    DB_PORT = os.getenv('DB_PORT', 5432)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+else:
+    # Default SQLite Configuration (for development/small deployments)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+
+# Email Configuration
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', True)
