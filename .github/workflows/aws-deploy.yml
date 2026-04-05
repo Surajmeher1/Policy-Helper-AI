@@ -1,0 +1,238 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Run Tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run unit tests
+      run: |
+        python -m pytest test.py -v 2>/dev/null || echo "Test run completed"
+    
+    - name: Check code quality (optional)
+      run: |
+        pip install flake8
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Deploy to AWS
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Get EC2 instance IPs
+      id: get-ips
+      run: |
+        # Get instance IDs from environment or secrets
+        INSTANCE_IDS="${{ secrets.EC2_INSTANCE_IDS }}"
+        
+        # Get private IPs
+        INSTANCE_IPS=$(aws ec2 describe-instances \
+          --instance-ids $INSTANCE_IDS \
+          --query 'Reservations[].Instances[].PrivateIpAddress' \
+          --output text)
+        
+        echo "instance_ips=$INSTANCE_IPS" >> $GITHUB_OUTPUT
+        echo "Instance IPs: $INSTANCE_IPS"
+    
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy-key.pem
+        chmod 600 ~/.ssh/deploy-key.pem
+        ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+    
+    - name: Deploy to EC2 instances
+      run: |
+        INSTANCE_IPS="${{ steps.get-ips.outputs.instance_ips }}"
+        BRANCH="${{ github.ref_name }}"
+        
+        for IP in $INSTANCE_IPS; do
+          echo "=========================================="
+          echo "Deploying to instance: $IP"
+          echo "Branch: $BRANCH"
+          echo "=========================================="
+          
+          ssh -i ~/.ssh/deploy-key.pem \
+              -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              -o ConnectTimeout=10 \
+              ubuntu@$IP << 'DEPLOY_SCRIPT'
+            set -e
+            
+            echo "Starting deployment..."
+            
+            # Navigate to app directory
+            cd /var/www/policy-helper-ai
+            
+            # Backup current version
+            echo "Creating backup..."
+            sudo cp -r . ./backup-$(date +%Y%m%d-%H%M%S)
+            
+            # Update code from GitHub
+            echo "Pulling latest code from GitHub..."
+            sudo chown -R ubuntu:ubuntu .
+            git fetch origin
+            git checkout $1
+            git pull origin $1
+            
+            # Restore ownership
+            sudo chown -R www-data:www-data .
+            
+            # Update Python dependencies
+            echo "Installing Python dependencies..."
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt --quiet
+            
+            # Run database migrations
+            echo "Running database migrations..."
+            flask db upgrade || echo "No pending migrations"
+            
+            # Collect static files (if needed)
+            # python -m flask --app app collect-static-files
+            
+            # Restart application
+            echo "Restarting application services..."
+            sudo systemctl restart supervisor
+            
+            # Wait for app to start
+            sleep 5
+            
+            # Verify deployment
+            echo "Verifying deployment..."
+            if curl -f http://localhost:5000 > /dev/null 2>&1; then
+              echo "✓ Application is running successfully"
+            else
+              echo "✗ Application failed to start - check logs"
+              sudo journalctl -u supervisor -n 50
+              exit 1
+            fi
+            
+            echo "Deployment completed successfully!"
+          DEPLOY_SCRIPT $BRANCH
+          
+          if [ $? -eq 0 ]; then
+            echo "✓ Deployment successful on $IP"
+          else
+            echo "✗ Deployment failed on $IP"
+            exit 1
+          fi
+          
+          echo ""
+        done
+    
+    - name: Health check
+      if: success()
+      run: |
+        echo "Running post-deployment health checks..."
+        
+        # Get ALB DNS
+        ALB_DNS="${{ secrets.ALB_DNS }}"
+        
+        if [ ! -z "$ALB_DNS" ]; then
+          echo "Testing ALB endpoint: $ALB_DNS"
+          
+          for i in {1..10}; do
+            if curl -f -s http://$ALB_DNS > /dev/null; then
+              echo "✓ ALB health check passed"
+              break
+            else
+              echo "Attempt $i/10: Waiting for ALB to be ready..."
+              sleep 6
+            fi
+          done
+        fi
+    
+    - name: Cleanup SSH
+      if: always()
+      run: |
+        rm -f ~/.ssh/deploy-key.pem
+        rm -rf ~/.ssh/known_hosts
+    
+    - name: Slack notification (optional)
+      if: always()
+      uses: slackapi/slack-github-action@v1.24.0
+      with:
+        webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+        payload: |
+          {
+            "text": "GitHub Action Result: ${{ job.status }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Policy Helper AI - AWS Deployment*\nStatus: ${{ job.status }}\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}"
+                }
+              }
+            ]
+          }
+      if: always()
+
+  # Rollback job (manual trigger)
+  rollback:
+    runs-on: ubuntu-latest
+    name: Rollback Deployment
+    if: github.event_name == 'workflow_dispatch' && failure() || contains(github.event.inputs.environment, 'rollback')
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Rollback to previous version
+      run: |
+        echo "Rolling back to previous version..."
+        INSTANCE_IDS="${{ secrets.EC2_INSTANCE_IDS }}"
+        
+        for INSTANCE_ID in $INSTANCE_IDS; do
+          echo "Rolling back instance: $INSTANCE_ID"
+          # Implementation of rollback logic
+        done

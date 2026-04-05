@@ -20,12 +20,16 @@ COPY . .
 # Create instance directory for database
 RUN mkdir -p instance
 
-# Expose port
-EXPOSE 7860
+# Expose port (Railway sets PORT dynamically)
+EXPOSE 5000
 
 # Set environment variables
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-# Run the app
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:7860", "--timeout", "60", "app:app"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD python -c "import requests; requests.get('http://localhost:5000', timeout=5)"
+
+# Run with gunicorn (Fly.io uses fly.toml process definition)
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--timeout", "120", "app:app"]

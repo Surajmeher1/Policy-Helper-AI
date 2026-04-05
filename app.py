@@ -428,7 +428,11 @@ def clear_chat_history_api():
 tokenizer = None
 model = None
 
-tool = language_tool_python.LanguageTool('en-US')
+try:
+    tool = language_tool_python.LanguageTool('en-US')
+except Exception:
+    tool = None
+    app.logger.warning("language_tool_python unavailable (likely missing Java). Grammar correction disabled.")
 
 def load_model():
     """Load BART model lazily when first needed"""
@@ -521,6 +525,8 @@ def simplify_lexically(text):
     return text
 
 def correct_grammar(text):
+    if tool is None:
+        return text
     return language_tool_python.utils.correct(text, tool.check(text))
 
 def improve_readability(text):
