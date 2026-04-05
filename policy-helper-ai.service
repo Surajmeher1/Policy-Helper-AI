@@ -1,0 +1,35 @@
+[Unit]
+Description=Policy Helper AI - Flask Application
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/policy-helper-ai
+Environment="PATH=/var/www/policy-helper-ai/venv/bin"
+ExecStart=/var/www/policy-helper-ai/venv/bin/gunicorn \
+    --workers=2 \
+    --worker-class=gthread \
+    --threads=4 \
+    --worker-connections=1000 \
+    --bind=127.0.0.1:5000 \
+    --timeout=120 \
+    --access-logfile=/var/log/gunicorn/access.log \
+    --error-logfile=/var/log/gunicorn/error.log \
+    --log-level=info \
+    app:app
+
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/gunicorn /var/www/policy-helper-ai/instance
+
+[Install]
+WantedBy=multi-user.target
