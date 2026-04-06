@@ -172,54 +172,24 @@ with app.app_context():
         app.logger.error(f"⚠️  Failed to initialize database tables: {e}")
 
 # ---------------------------------------------------------
-# SEO ROUTES - Sitemap, Robots.txt, Google Verification
+# DEBUG: Test database connectivity (remove in production)
 # ---------------------------------------------------------
-@app.route('/sitemap.xml')
-def sitemap_file():
-    """Serve sitemap.xml for search engine crawling"""
+@app.route('/debug/db-test')
+def debug_db_test():
+    """Quick test to see if database is working"""
     try:
-        sitemap_path = os.path.join(os.path.dirname(__file__), 'sitemap.xml')
-        if os.path.exists(sitemap_path):
-            with open(sitemap_path, 'r', encoding='utf-8') as f:
-                response = app.make_response(f.read())
-                response.headers['Content-Type'] = 'application/xml'
-                response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
-                return response
-        return ("Sitemap not found", 404)
+        # Try to query users table
+        user_count = User.query.count()
+        return jsonify({
+            "status": "✅ Database working",
+            "user_count": user_count,
+            "tables": ["User", "ChatConversation", "ChatMessage", "Activity"]
+        })
     except Exception as e:
-        app.logger.error(f"Error serving sitemap: {e}")
-        return ("Error serving sitemap", 500)
-
-@app.route('/robots.txt')
-def robots():
-    """Serve robots.txt for search engine crawling"""
-    try:
-        robots_path = os.path.join(os.path.dirname(__file__), 'robots.txt')
-        if os.path.exists(robots_path):
-            with open(robots_path, 'r', encoding='utf-8') as f:
-                response = app.make_response(f.read())
-                response.headers['Content-Type'] = 'text/plain'
-                response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
-                return response
-        return ("Robots.txt not found", 404)
-    except Exception as e:
-        app.logger.error(f"Error serving robots.txt: {e}")
-        return ("Error serving robots.txt", 500)
-
-@app.route('/google449e6873ed06daf5.html')
-def google_verification():
-    """Serve Google Search Console verification file"""
-    try:
-        verify_path = os.path.join(os.path.dirname(__file__), 'google449e6873ed06daf5.html')
-        if os.path.exists(verify_path):
-            with open(verify_path, 'r', encoding='utf-8') as f:
-                response = app.make_response(f.read())
-                response.headers['Content-Type'] = 'text/html'
-                return response
-        return ("Verification file not found", 404)
-    except Exception as e:
-        app.logger.error(f"Error serving Google verification file: {e}")
-        return ("Error serving verification file", 500)
+        return jsonify({
+            "status": "🔴 Database error",
+            "error": str(e)
+        }), 500
 
 # ---------------------------------------------------------
 # HOME / LANDING PAGE
@@ -323,13 +293,11 @@ def forgot_password():
                 flash("Please enter your email address.", "danger")
                 return render_template("forgot_password.html")
             
-            app.logger.info(f"Password reset requested for: {email}")
-            
             # Find user by email
             try:
                 user = User.query.filter_by(email=email).first()
             except Exception as db_error:
-                app.logger.error(f"Database error querying user: {db_error}")
+                app.logger.error(f"🔴 Database query error: {db_error}")
                 flash("Database error. Please try again later.", "danger")
                 return render_template("forgot_password.html")
 
@@ -339,19 +307,15 @@ def forgot_password():
                     token = serializer.dumps(email, salt="reset-password")
                     user.reset_token = token
                     db.session.commit()
-                    app.logger.info(f"Reset token generated for {email}")
-                except Exception as e:
+                    app.logger.info(f"✅ Reset token generated for {email}")
+                except Exception as token_error:
+                    app.logger.error(f"🔴 Token generation/save error: {token_error}")
                     db.session.rollback()
-                    app.logger.error(f"Error saving reset token: {e}")
-                    flash("Could not generate reset link. Please try again.", "danger")
+                    flash("Failed to generate reset link.", "danger")
                     return render_template("forgot_password.html")
 
                 reset_url = url_for('reset_password', token=token, _external=True)
-                
-                try:
-                    log_activity(user, "forgot_password", details="Password reset requested")
-                except:
-                    pass  # Don't fail if logging fails
+                log_activity(user, "forgot_password", details="Password reset requested")
 
                 # Try to send email if configured
                 if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
@@ -363,27 +327,24 @@ def forgot_password():
                         )
                         msg.body = f"Click here to reset your password:\n{reset_url}\n\nIf you didn't request this, ignore this email."
                         mail.send(msg)
-                        app.logger.info(f"Reset email sent to {email}")
                         flash("Reset link sent to your email.", "success")
+                        app.logger.info(f"✅ Reset email sent to {email}")
                     except Exception as e:
-                        app.logger.error(f"Email send failed: {e}")
-                        flash("Reset link generated but email send failed. Contact administrator.", "warning")
+                        app.logger.error(f"🔴 Email send failed: {e}")
+                        flash("Email service error. Please contact administrator.", "warning")
                 else:
-                    app.logger.warning(f"Email not configured. Reset link: {reset_url}")
-                    flash("Reset link sent (email not configured on server).", "info")
+                    app.logger.warning(f"⚠️ Email not configured. Reset link: {reset_url}")
+                    flash("Email service not configured. Please contact administrator.", "warning")
 
                 return redirect(url_for('login'))
             else:
                 flash("Email not found in system.", "danger")
-                try:
-                    log_activity(None, "forgot_password_fail", details=f"Unknown email: {email}")
-                except:
-                    pass
+                log_activity(None, "forgot_password_fail", details=f"Unknown email: {email}")
                 return render_template("forgot_password.html")
         
         except Exception as e:
-            app.logger.exception(f"Unexpected error in forgot_password: {e}")
-            flash("An unexpected error occurred. Please try again.", "danger")
+            app.logger.exception(f"🔴 FORGOT_PASSWORD ROUTE ERROR: {e}")
+            flash(f"Error: {str(e)}", "danger")
             return render_template("forgot_password.html")
 
     return render_template("forgot_password.html")
