@@ -73,15 +73,25 @@ mail = Mail(app)
 # Set SMTP timeout to prevent worker hanging
 socket.setdefaulttimeout(10)
 
-# Helper function to send emails asynchronously
+# Helper function to send emails asynchronously with timeout
 def send_email_async(msg):
-    """Send email in a background thread to avoid blocking requests"""
-    try:
-        with app.app_context():
-            mail.send(msg)
-            app.logger.info(f"✅ Email sent to {msg.recipients[0]}")
-    except Exception as e:
-        app.logger.error(f"🔴 Email delivery failed: {e}")
+    """Send email in background thread with 15-second timeout"""
+    def _send_with_timeout():
+        try:
+            # Set socket timeout for this thread
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(15)
+            try:
+                with app.app_context():
+                    mail.send(msg)
+                    app.logger.info(f"✅ Email sent to {msg.recipients[0]}")
+            finally:
+                socket.setdefaulttimeout(old_timeout)
+        except Exception as e:
+            app.logger.error(f"🔴 Email delivery failed: {e}")
+    
+    thread = threading.Thread(target=_send_with_timeout, daemon=True)
+    thread.start()
 
 # Validate email configuration on startup
 if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
