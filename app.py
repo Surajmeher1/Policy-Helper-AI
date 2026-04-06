@@ -266,46 +266,74 @@ def logout():
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        
-        if not email:
-            flash("Please enter your email address.", "danger")
-            return render_template("forgot_password.html")
-        
-        # Find user by email
-        user = User.query.filter_by(email=email).first()
+        try:
+            email = request.form.get('email', '').strip()
+            
+            if not email:
+                flash("Please enter your email address.", "danger")
+                return render_template("forgot_password.html")
+            
+            app.logger.info(f"Password reset requested for: {email}")
+            
+            # Find user by email
+            try:
+                user = User.query.filter_by(email=email).first()
+            except Exception as db_error:
+                app.logger.error(f"Database error querying user: {db_error}")
+                flash("Database error. Please try again later.", "danger")
+                return render_template("forgot_password.html")
 
-        if user:
-            # Generate reset token
-            token = serializer.dumps(email, salt="reset-password")
-            user.reset_token = token
-            db.session.commit()
-
-            reset_url = url_for('reset_password', token=token, _external=True)
-            log_activity(user, "forgot_password", details="Password reset requested")
-
-            # Try to send email if configured
-            if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
+            if user:
                 try:
-                    msg = Message(
-                        "Password Reset Request",
-                        sender=app.config.get('MAIL_USERNAME'),
-                        recipients=[email]
-                    )
-                    msg.body = f"Click here to reset your password:\n{reset_url}\n\nIf you didn't request this, ignore this email."
-                    mail.send(msg)
-                    flash("Reset link sent to your email.", "success")
+                    # Generate reset token
+                    token = serializer.dumps(email, salt="reset-password")
+                    user.reset_token = token
+                    db.session.commit()
+                    app.logger.info(f"Reset token generated for {email}")
                 except Exception as e:
-                    app.logger.error(f"Email send failed: {e}")
-                    flash("Email sent with warning. Check your email (may be in spam).", "warning")
-            else:
-                app.logger.warning(f"Email not configured. Reset link: {reset_url}")
-                flash("Email service not configured. Please contact administrator.", "warning")
+                    db.session.rollback()
+                    app.logger.error(f"Error saving reset token: {e}")
+                    flash("Could not generate reset link. Please try again.", "danger")
+                    return render_template("forgot_password.html")
 
-            return redirect(url_for('login'))
-        else:
-            flash("Email not found in system.", "danger")
-            log_activity(None, "forgot_password_fail", details=f"Unknown email: {email}")
+                reset_url = url_for('reset_password', token=token, _external=True)
+                
+                try:
+                    log_activity(user, "forgot_password", details="Password reset requested")
+                except:
+                    pass  # Don't fail if logging fails
+
+                # Try to send email if configured
+                if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
+                    try:
+                        msg = Message(
+                            "Password Reset Request",
+                            sender=app.config.get('MAIL_USERNAME'),
+                            recipients=[email]
+                        )
+                        msg.body = f"Click here to reset your password:\n{reset_url}\n\nIf you didn't request this, ignore this email."
+                        mail.send(msg)
+                        app.logger.info(f"Reset email sent to {email}")
+                        flash("Reset link sent to your email.", "success")
+                    except Exception as e:
+                        app.logger.error(f"Email send failed: {e}")
+                        flash("Reset link generated but email send failed. Contact administrator.", "warning")
+                else:
+                    app.logger.warning(f"Email not configured. Reset link: {reset_url}")
+                    flash("Reset link sent (email not configured on server).", "info")
+
+                return redirect(url_for('login'))
+            else:
+                flash("Email not found in system.", "danger")
+                try:
+                    log_activity(None, "forgot_password_fail", details=f"Unknown email: {email}")
+                except:
+                    pass
+                return render_template("forgot_password.html")
+        
+        except Exception as e:
+            app.logger.exception(f"Unexpected error in forgot_password: {e}")
+            flash("An unexpected error occurred. Please try again.", "danger")
             return render_template("forgot_password.html")
 
     return render_template("forgot_password.html")
