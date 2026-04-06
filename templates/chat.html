@@ -886,7 +886,14 @@
 
         // Create conversation if none exists
         if (!currentConversationId) {
+            console.log('[Send Message] No conversation ID, creating new conversation...');
             await createNewConversation();
+            
+            // If still no conversation ID, stop
+            if (!currentConversationId) {
+                console.error('[Send Message] Failed to create conversation');
+                return;
+            }
         }
 
         const sendButton = document.getElementById('sendButton');
@@ -895,6 +902,7 @@
         hideError();
 
         // Save user message
+        console.log('[Send Message] Saving user message...');
         await saveMessage(currentConversationId, 'user', query);
 
         addMessage(query, 'user');
@@ -903,6 +911,7 @@
         showLoading();
 
         try {
+            console.log('[Send Message] Calling /api/explain...');
             const response = await fetch('/api/explain', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -915,8 +924,10 @@
             await saveMessage(currentConversationId, 'assistant', data.explanation);
             
             addMessage(data.explanation, 'ai');
+            console.log('[Send Message] Message sent and saved');
             loadConversations(); // Refresh sidebar with updated title
         } catch (error) {
+            console.error('[Send Message] Error:', error.message);
             showError(error.message);
         } finally {
             hideLoading();
@@ -1092,11 +1103,6 @@
         } catch { showError('Failed to clear history'); }
     }
 
-    window.addEventListener('load', () => {
-        document.getElementById('queryInput').focus();
-        scrollBottom();
-    });
-
     /* ── Theme toggle ── */
     const themeToggle = document.getElementById('themeToggle');
 
@@ -1136,6 +1142,16 @@
             const response = await fetch('/api/chat/conversations');
             const data = await response.json();
             
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.warn('[Load Conversations] User not authenticated');
+                    const list = document.getElementById('conversationsList');
+                    list.innerHTML = '<div class="sidebar-empty">Log in to view conversations</div>';
+                    return;
+                }
+                throw new Error(data.error || `Server error: ${response.status}`);
+            }
+            
             if (!data.success) {
                 console.error('Failed to load conversations:', data.error);
                 return;
@@ -1165,28 +1181,43 @@
             }
         } catch (error) {
             console.error('Error loading conversations:', error);
+            const list = document.getElementById('conversationsList');
+            list.innerHTML = '<div class="sidebar-empty">Error loading conversations</div>';
         }
     }
 
     async function createNewConversation() {
         try {
-            const response = await fetch('/api/chat/new', { method: 'POST' });
+            console.log('[Create Conversation] Sending request to /api/chat/new');
+            const response = await fetch('/api/chat/new', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
             const data = await response.json();
+            console.log('[Create Conversation] Response:', { status: response.status, data });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    showError('You must be logged in to start a conversation. Please log in.');
+                    window.location.href = '/login';
+                    return;
+                }
+                throw new Error(data.error || `Server error: ${response.status}`);
+            }
 
             if (!data.success) {
-                const errorMsg = data.error || 'Failed to create new conversation';
-                showError(`Error: ${errorMsg}`);
-                console.error('Failed to create conversation:', data.error);
-                return;
+                throw new Error(data.error || 'Failed to create new conversation');
             }
 
             currentConversationId = data.conversation_id;
+            console.log('[Create Conversation] Success! ID:', currentConversationId);
             clearMessages();
             await loadConversations();
             document.getElementById('queryInput').focus();
         } catch (error) {
+            console.error('[Create Conversation] Error:', error.message);
             showError(`Failed to create conversation: ${error.message}`);
-            console.error('Error creating conversation:', error);
         }
     }
 
@@ -1292,10 +1323,35 @@
         }
     }
 
-    // Load conversations on page load
-    window.addEventListener('load', () => {
-        loadConversations();
-    });
+    // Initialize on page load - consolidated
+    let conversationsInitialized = false;
+    
+    async function initializeChat() {
+        console.log('[Chat Init] Starting initialization...');
+        
+        // Focus input
+        const input = document.getElementById('queryInput');
+        if (input) input.focus();
+        
+        // Scroll to bottom
+        scrollBottom();
+        
+        // Try to load conversations
+        try {
+            console.log('[Chat Init] Attempting to load conversations...');
+            await loadConversations();
+            conversationsInitialized = true;
+            console.log('[Chat Init] Conversations loaded successfully');
+        } catch (error) {
+            console.error('[Chat Init] Failed to load conversations:', error);
+            // Show error for debugging
+            showError('Could not load conversation history - you may need to reload the page');
+            conversationsInitialized = false;
+        }
+    }
+    
+    // Single consolidated load event
+    window.addEventListener('load', initializeChat);
 
 </script>
 </body>
