@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🇮🇳 Indian Law Helper - भारतीय कानून सहायक</title>
+    <title>🇮🇳 Indian Law Helper</title>
     <link href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -679,7 +679,7 @@
     <!-- Sidebar with Chat History -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <button class="btn-new-chat" onclick="createNewConversation()">+ नई बातचीत (New Chat)</button>
+            <button class="btn-new-chat" onclick="createNewConversation()">+ New Chat</button>
         </div>
         <div class="sidebar-content" id="conversationsList">
             <div class="sidebar-empty">No conversations yet</div>
@@ -734,9 +734,9 @@
                     {% endfor %}
                 {% else %}
                 <div class="empty-state" id="emptyState">
-                    <div class="empty-icon">🇮🇳</div>
-                    <h2> (Indian Law Helper)</h2>
-                    <p>| Ask anything about Indian Constitution, laws, and government policies in plain language.</p>
+                    <div class="empty-icon">⚖️</div>
+                    <h2>Indian Law Helper</h2>
+                    <p>Ask anything about Indian Constitution, laws, and government policies in plain language.</p>
                 </div>
                 {% endif %}
 
@@ -776,7 +776,7 @@
                     <div class="input-box">
                         <textarea
                             id="queryInput"
-                            placeholder="भारतीय कानून के बारे में पूछें | Ask about Indian laws, Constitution, and policies..."
+                            placeholder="Ask about Indian laws, Constitution, and policies..."
                             rows="1"
                             onkeydown="handleKeyPress(event)"
                             oninput="autoResize(this)"
@@ -786,7 +786,7 @@
                         </button>
                     </div>
                 </form>
-                <div class="input-hint">भारतीय कानूनी सहायता (Indian Legal Help) | Shift+Enter for new line · For legal advice, consult a qualified lawyer</div>
+                <div class="input-hint">Shift+Enter for new line · For legal advice, consult a qualified lawyer</div>
             </div>
         </div>
 
