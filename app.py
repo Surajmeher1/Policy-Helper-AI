@@ -18,6 +18,15 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL_NAME = "llama-3.3-70b-versatile"
+
+# Validate API Key on startup
+if not GROQ_API_KEY:
+    import warnings
+    warnings.warn(
+        "⚠️  GROQ_API_KEY is not set! Set it in environment variables. "
+        "Chat and text simplification will not work until this is configured.\n"
+        "For Render: Go to Dashboard → Settings → Environment → Add GROQ_API_KEY"
+    )
 # ---------------------------------------------------------
 # Flask App Configuration
 # ---------------------------------------------------------
@@ -369,6 +378,13 @@ def chat():
 @app.route('/api/explain', methods=['POST'])
 def explain():
     try:
+        # Check if API key is configured
+        if not GROQ_API_KEY:
+            return jsonify({
+                "success": False, 
+                "error": "GROQ API Key not configured. Contact administrator or set GROQ_API_KEY environment variable."
+            }), 500
+            
         data = request.get_json()
         query = data.get("query")
 
@@ -391,7 +407,11 @@ def explain():
         response = requests.post(GROQ_API_URL, json=payload, headers=headers)
 
         if response.status_code != 200:
-            return jsonify({"success": False, "error": response.text}), 500
+            error_msg = response.text
+            # Provide helpful error message for invalid API key
+            if "invalid_api_key" in error_msg.lower():
+                error_msg = "Invalid GROQ API Key. Check your GROQ_API_KEY environment variable."
+            return jsonify({"success": False, "error": error_msg}), 500
 
         result = response.json()
 
@@ -518,6 +538,11 @@ def improve_readability(text):
 def ml_simplify(text):
     """Simplify text using Groq API instead of local BART model"""
     try:
+        # Check if API key is configured
+        if not GROQ_API_KEY:
+            app.logger.warning("GROQ_API_KEY not configured. Falling back to lexical simplification.")
+            return simplify_lexically(text)
+        
         # Use Groq API for text simplification - more efficient than local model
         headers = {
             "Content-Type": "application/json",
