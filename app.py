@@ -32,6 +32,7 @@ if not GROQ_API_KEY:
 # ---------------------------------------------------------
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-key-change-in-production")
+app.config['PROPAGATE_EXCEPTIONS'] = True  # Show actual errors instead of 500
 
 # Database Configuration - Supports SQLite (default) or AWS RDS
 DB_TYPE = os.getenv('DB_TYPE', 'sqlite')
@@ -288,64 +289,72 @@ def forgot_password():
     if request.method == 'POST':
         try:
             email = request.form.get('email', '').strip()
+            app.logger.info(f"📧 Forgot password request for: {email}")
             
             if not email:
                 flash("Please enter your email address.", "danger")
                 return render_template("forgot_password.html")
             
             # Find user by email
-            try:
-                user = User.query.filter_by(email=email).first()
-            except Exception as db_error:
-                app.logger.error(f"🔴 Database query error: {db_error}")
-                flash("Database error. Please try again later.", "danger")
+            user = User.query.filter_by(email=email).first()
+            
+            if not user:
+                app.logger.warning(f"⚠️ Email not found: {email}")
+                flash("Email not registered in system.", "danger")
                 return render_template("forgot_password.html")
+            
+            app.logger.info(f"✅ Found user: {user.username}")
 
-            if user:
+            # Generate token
+            token = serializer.dumps(email, salt="reset-password")
+            user.reset_token = token
+            db.session.commit()
+            app.logger.info(f"✅ Token generated and saved")
+
+            reset_url = url_for('reset_password', token=token, _external=True)
+
+            # Send email - use try/catch so email failure doesn't crash everything
+            email_sent = False
+            if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
                 try:
-                    # Generate reset token
-                    token = serializer.dumps(email, salt="reset-password")
-                    user.reset_token = token
-                    db.session.commit()
-                    app.logger.info(f"✅ Reset token generated for {email}")
-                except Exception as token_error:
-                    app.logger.error(f"🔴 Token generation/save error: {token_error}")
-                    db.session.rollback()
-                    flash("Failed to generate reset link.", "danger")
-                    return render_template("forgot_password.html")
+                    msg = Message(
+                        "Password Reset Request - Policy Helper AI",
+                        sender=app.config.get('MAIL_USERNAME'),
+                        recipients=[email]
+                    )
+                    msg.body = f"""
+Hello {user.username},
 
-                reset_url = url_for('reset_password', token=token, _external=True)
-                log_activity(user, "forgot_password", details="Password reset requested")
+Click the link below to reset your password:
+{reset_url}
 
-                # Try to send email if configured
-                if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
-                    try:
-                        msg = Message(
-                            "Password Reset Request",
-                            sender=app.config.get('MAIL_USERNAME'),
-                            recipients=[email]
-                        )
-                        msg.body = f"Click here to reset your password:\n{reset_url}\n\nIf you didn't request this, ignore this email."
-                        mail.send(msg)
-                        flash("Reset link sent to your email.", "success")
-                        app.logger.info(f"✅ Reset email sent to {email}")
-                    except Exception as e:
-                        app.logger.error(f"🔴 Email send failed: {e}")
-                        flash("Email service error. Please contact administrator.", "warning")
-                else:
-                    app.logger.warning(f"⚠️ Email not configured. Reset link: {reset_url}")
-                    flash("Email service not configured. Please contact administrator.", "warning")
+This link expires in 1 hour.
 
-                return redirect(url_for('login'))
+If you didn't request this, please ignore this email.
+
+-- Policy Helper AI Team
+"""
+                    mail.send(msg)
+                    email_sent = True
+                    app.logger.info(f"✅ Email sent to {email}")
+                except Exception as email_error:
+                    app.logger.error(f"🔴 Email delivery failed: {email_error}")
             else:
-                flash("Email not found in system.", "danger")
-                log_activity(None, "forgot_password_fail", details=f"Unknown email: {email}")
-                return render_template("forgot_password.html")
+                app.logger.warning("⚠️ Email not configured - reset link generated but not emailed")
+
+            if email_sent:
+                flash("✅ Reset link sent to your email. Check spam folder if needed.", "success")
+            else:
+                flash("⚠️ Email service unavailable. Please contact administrator.", "warning")
+            
+            log_activity(user, "forgot_password", details="Password reset requested")
+            return redirect(url_for('login'))
         
         except Exception as e:
-            app.logger.exception(f"🔴 FORGOT_PASSWORD ROUTE ERROR: {e}")
-            flash(f"Error: {str(e)}", "danger")
-            return render_template("forgot_password.html")
+            app.logger.exception(f"🔴 FORGOT_PASSWORD ERROR: {e}")
+            error_msg = str(e)[:100]  # First 100 chars of error
+            flash(f"❌ Error: {error_msg}", "danger")
+            return render_template("forgot_password.html"), 500
 
     return render_template("forgot_password.html")
 
@@ -899,6 +908,24 @@ def highlight_entities(text):
         text = re.sub(rf'\b({word})\b', r'<span style="background-color:rgba(239,68,68,0.25); color:#ff6b6b; padding:2px 6px; border-radius:4px; font-weight:600;">\1</span>', text, flags=re.IGNORECASE)
 
     return text.strip()
+
+# ---------------------------------------------------------
+# ERROR HANDLERS
+# ---------------------------------------------------------
+@app.errorhandler(500)
+def handle_500_error(error):
+    """Show actual error details"""
+    app.logger.exception(f"500 ERROR: {error}")
+    error_msg = str(error)
+    return f"""
+    <h1>❌ Server Error</h1>
+    <p><strong>Error:</strong> {error_msg[:200]}</p>
+    <p><a href="/">Back to Home</a></p>
+    """, 500
+
+@app.errorhandler(404)
+def handle_404_error(error):
+    return "<h1>404 - Page Not Found</h1><p><a href='/'>Back to Home</a></p>", 404
 
 # ---------------------------------------------------------
 if __name__ == "__main__":
