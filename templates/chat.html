@@ -80,6 +80,103 @@
             overflow: hidden;
         }
 
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            max-height: 100vh;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .btn-new-chat {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--gold);
+            color: #000;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-new-chat:hover {
+            background: var(--gold);
+            filter: brightness(1.1);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .conversation-item {
+            padding: 10px 12px;
+            margin-bottom: 4px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .conversation-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .conversation-item.active {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .conversation-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 13px;
+        }
+
+        .conversation-delete {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            margin-left: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .conversation-item:hover .conversation-delete {
+            opacity: 1;
+        }
+
+        .conversation-delete:hover {
+            color: #ff4444;
+        }
+
+        .sidebar-empty {
+            padding: 20px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
         .main {
             flex: 1;
             display: flex;
@@ -598,6 +695,16 @@
 </head>
 <body>
 <div class="layout">
+    <!-- Sidebar with Chat History -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <button class="btn-new-chat" onclick="createNewConversation()">+ New Chat</button>
+        </div>
+        <div class="sidebar-content" id="conversationsList">
+            <div class="sidebar-empty">No conversations yet</div>
+        </div>
+    </div>
+
     <div class="main">
 
         <!-- Topbar -->
@@ -1006,6 +1113,215 @@
             applyTheme(document.body.classList.contains('light') ? 'dark' : 'light');
         });
     }
+
+    /* ── Chat History Management ── */
+    let currentConversationId = null;
+
+    async function loadConversations() {
+        try {
+            const response = await fetch('/api/chat/conversations');
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error('Failed to load conversations');
+                return;
+            }
+
+            const list = document.getElementById('conversationsList');
+            const conversations = data.conversations;
+
+            if (conversations.length === 0) {
+                list.innerHTML = '<div class="sidebar-empty">No conversations yet</div>';
+                return;
+            }
+
+            list.innerHTML = conversations.map(conv => `
+                <div class="conversation-item" onclick="loadConversation(${conv.id})">
+                    <span class="conversation-title">${escapeHtml(conv.title)}</span>
+                    <button class="conversation-delete" onclick="deleteConversation(event, ${conv.id})">×</button>
+                </div>
+            `).join('');
+
+            // If no conversation is loaded, load the most recent
+            if (!currentConversationId && conversations.length > 0) {
+                loadConversation(conversations[0].id);
+            }
+        } catch (error) {
+            console.error('Error loading conversations:', error);
+        }
+    }
+
+    async function createNewConversation() {
+        try {
+            const response = await fetch('/api/chat/new', { method: 'POST' });
+            const data = await response.json();
+
+            if (!data.success) {
+                showError('Failed to create new conversation');
+                return;
+            }
+
+            currentConversationId = data.conversation_id;
+            clearMessages();
+            loadConversations();
+            document.getElementById('queryInput').focus();
+        } catch (error) {
+            showError('Failed to create new conversation');
+            console.error(error);
+        }
+    }
+
+    async function loadConversation(conversationId) {
+        try {
+            const response = await fetch(`/api/chat/${conversationId}/messages`);
+            const data = await response.json();
+
+            if (!data.success) {
+                showError('Failed to load conversation');
+                return;
+            }
+
+            currentConversationId = conversationId;
+            clearMessages();
+
+            // Load all messages from conversation
+            data.messages.forEach(msg => {
+                addMessage(msg.content, msg.role);
+            });
+
+            // Highlight active conversation
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            scrollBottom();
+        } catch (error) {
+            showError('Failed to load conversation');
+            console.error(error);
+        }
+    }
+
+    async function deleteConversation(event, conversationId) {
+        event.stopPropagation();
+        
+        if (!confirm('Delete this conversation?')) return;
+
+        try {
+            const response = await fetch(`/api/chat/${conversationId}/delete`, { method: 'DELETE' });
+            const data = await response.json();
+
+            if (!data.success) {
+                showError('Failed to delete conversation');
+                return;
+            }
+
+            if (currentConversationId === conversationId) {
+                currentConversationId = null;
+                clearMessages();
+            }
+
+            loadConversations();
+        } catch (error) {
+            showError('Failed to delete conversation');
+            console.error(error);
+        }
+    }
+
+    function clearMessages() {
+        const inner = document.getElementById('messagesInner');
+        inner.innerHTML = `
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">⚖️</div>
+                <h2>Policy Helper AI</h2>
+                <p>Ask me anything about laws, legal concepts, or government policies in plain language.</p>
+            </div>
+            <div class="loading-msg" id="loadingIndicator">
+                <div class="avatar avatar-ai">⚖️</div>
+                <div class="message-body" style="padding-top:6px;">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        hideLoading();
+    }
+
+    // Override sendMessage to save messages
+    const originalSendMessage = window.sendMessage;
+    window.sendMessage = async function(event) {
+        event.preventDefault();
+        const input = document.getElementById('queryInput');
+        const query = input.value.trim();
+        if (!query) { showError('Please enter a question'); return; }
+
+        // Create conversation if none exists
+        if (!currentConversationId) {
+            await createNewConversation();
+        }
+
+        const sendButton = document.getElementById('sendButton');
+        input.disabled = true;
+        sendButton.disabled = true;
+        hideError();
+
+        // Save user message
+        try {
+            const saveResp = await fetch(`/api/chat/${currentConversationId}/message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: 'user', content: query })
+            });
+            
+            if (!saveResp.ok) {
+                throw new Error('Failed to save message');
+            }
+        } catch (e) {
+            console.error('Error saving message:', e);
+        }
+
+        addMessage(query, 'user');
+        input.value = '';
+        input.style.height = 'auto';
+        showLoading();
+
+        try {
+            const response = await fetch('/api/explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Failed to get response');
+
+            // Save AI response
+            try {
+                await fetch(`/api/chat/${currentConversationId}/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: 'assistant', content: data.explanation })
+                });
+            } catch (e) {
+                console.error('Error saving AI response:', e);
+            }
+
+            addMessage(data.explanation, 'ai');
+            loadConversations(); // Refresh sidebar
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            input.disabled = false;
+            sendButton.disabled = false;
+            hideLoading();
+        }
+    };
+
+    // Load conversations on page load
+    window.addEventListener('load', () => {
+        loadConversations();
+        document.getElementById('queryInput').focus();
+        scrollBottom();
+    });
 </script>
 </body>
 </html>

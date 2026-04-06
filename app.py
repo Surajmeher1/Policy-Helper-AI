@@ -96,6 +96,7 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
 
     activities = db.relationship('Activity', backref='user', lazy='dynamic')
+    chat_conversations = db.relationship('ChatConversation', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -104,6 +105,28 @@ class Activity(db.Model):
     details = db.Column(db.Text, nullable=True)
     ip_address = db.Column(db.String(64), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+class ChatConversation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
+    
+    messages = db.relationship('ChatMessage', backref='conversation', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<ChatConversation {self.title}>'
+
+class ChatMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey('chat_conversation.id'), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # 'user' or 'assistant'
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    def __repr__(self):
+        return f'<ChatMessage {self.role}: {self.content[:50]}...>'
 
 # ---------------------------------------------------------
 # Utility: log activity
@@ -411,7 +434,186 @@ def delete_user(user_id):
     return redirect(url_for('admin'))
 @app.route("/chat")
 def chat():
+    if "username" not in session:
+        flash("Login required.", "danger")
+        return redirect(url_for('login'))
     return render_template("chat.html")
+
+@app.route('/api/chat/conversations', methods=['GET'])
+def get_conversations():
+    """Get all chat conversations for logged in user"""
+    if "username" not in session:
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    try:
+        username = session.get('username')
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({"success": False, "error": "User not found"}), 404
+        
+        conversations = ChatConversation.query.filter_by(user_id=user.id).order_by(
+            ChatConversation.updated_at.desc()
+        ).all()
+        
+        conv_data = [{
+            'id': conv.id,
+            'title': conv.title,
+            'created_at': conv.created_at.isoformat(),
+            'updated_at': conv.updated_at.isoformat()
+        } for conv in conversations]
+        
+        return jsonify({"success": True, "conversations": conv_data})
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/chat/new', methods=['POST'])
+def create_new_conversation():
+    """Create a new chat conversation"""
+    if "username" not in session:
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    try:
+        username = session.get('username')
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({"success": False, "error": "User not found"}), 404
+        
+        # Create new conversation with default title
+        new_conversation = ChatConversation(
+            user_id=user.id,
+            title="New Chat"
+        )
+        db.session.add(new_conversation)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": new_conversation.id,
+            "title": new_conversation.title
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/chat/<int:conversation_id>/messages', methods=['GET'])
+def get_conversation_messages(conversation_id):
+    """Get all messages for a specific conversation"""
+    if "username" not in session:
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    try:
+        username = session.get('username')
+        user = User.query.filter_by(username=username).first()
+        
+        conversation = ChatConversation.query.filter_by(
+            id=conversation_id,
+            user_id=user.id
+        ).first()
+        
+        if not conversation:
+            return jsonify({"success": False, "error": "Conversation not found"}), 404
+        
+        messages = ChatMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).order_by(ChatMessage.created_at).all()
+        
+        msg_data = [{
+            'id': msg.id,
+            'role': msg.role,
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat()
+        } for msg in messages]
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation_id,
+            "title": conversation.title,
+            "messages": msg_data
+        })
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/chat/<int:conversation_id>/message', methods=['POST'])
+def save_message(conversation_id):
+    """Save a message to a conversation"""
+    if "username" not in session:
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    try:
+        username = session.get('username')
+        user = User.query.filter_by(username=username).first()
+        
+        conversation = ChatConversation.query.filter_by(
+            id=conversation_id,
+            user_id=user.id
+        ).first()
+        
+        if not conversation:
+            return jsonify({"success": False, "error": "Conversation not found"}), 404
+        
+        data = request.get_json()
+        role = data.get('role')  # 'user' or 'assistant'
+        content = data.get('content')
+        
+        if not role or not content:
+            return jsonify({"success": False, "error": "Missing role or content"}), 400
+        
+        message = ChatMessage(
+            conversation_id=conversation_id,
+            role=role,
+            content=content
+        )
+        db.session.add(message)
+        
+        # Update conversation title if it's the first user message
+        if role == 'user' and conversation.title == "New Chat":
+            # Use first 50 chars of message as title
+            conversation.title = content[:50] + ("..." if len(content) > 50 else "")
+        
+        conversation.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message_id": message.id,
+            "conversation_title": conversation.title
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/chat/<int:conversation_id>/delete', methods=['DELETE'])
+def delete_conversation(conversation_id):
+    """Delete a conversation"""
+    if "username" not in session:
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    try:
+        username = session.get('username')
+        user = User.query.filter_by(username=username).first()
+        
+        conversation = ChatConversation.query.filter_by(
+            id=conversation_id,
+            user_id=user.id
+        ).first()
+        
+        if not conversation:
+            return jsonify({"success": False, "error": "Conversation not found"}), 404
+        
+        db.session.delete(conversation)
+        db.session.commit()
+        
+        return jsonify({"success": True})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
 @app.route('/api/explain', methods=['POST'])
 def explain():
     try:
