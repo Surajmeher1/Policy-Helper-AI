@@ -9,6 +9,8 @@ import language_tool_python
 import textstat
 import re
 from datetime import datetime
+import threading
+import socket
 
 import os
 import requests
@@ -67,6 +69,19 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
+
+# Set SMTP timeout to prevent worker hanging
+socket.setdefaulttimeout(10)
+
+# Helper function to send emails asynchronously
+def send_email_async(msg):
+    """Send email in a background thread to avoid blocking requests"""
+    try:
+        with app.app_context():
+            mail.send(msg)
+            app.logger.info(f"✅ Email sent to {msg.recipients[0]}")
+    except Exception as e:
+        app.logger.error(f"🔴 Email delivery failed: {e}")
 
 # Validate email configuration on startup
 if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
@@ -313,7 +328,7 @@ def forgot_password():
 
             reset_url = url_for('reset_password', token=token, _external=True)
 
-            # Send email - use try/catch so email failure doesn't crash everything
+            # Send email asynchronously to prevent worker timeout
             email_sent = False
             if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
                 try:
@@ -334,11 +349,13 @@ If you didn't request this, please ignore this email.
 
 -- Policy Helper AI Team
 """
-                    mail.send(msg)
+                    # Send email in background thread to avoid blocking
+                    email_thread = threading.Thread(target=send_email_async, args=(msg,), daemon=True)
+                    email_thread.start()
                     email_sent = True
-                    app.logger.info(f"✅ Email sent to {email}")
+                    app.logger.info(f"📨 Email send queued for {email} (sent in background)")
                 except Exception as email_error:
-                    app.logger.error(f"🔴 Email delivery failed: {email_error}")
+                    app.logger.error(f"🔴 Email queue failed: {email_error}")
             else:
                 app.logger.warning("⚠️ Email not configured - reset link generated but not emailed")
 
