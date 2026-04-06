@@ -172,6 +172,56 @@ with app.app_context():
         app.logger.error(f"⚠️  Failed to initialize database tables: {e}")
 
 # ---------------------------------------------------------
+# SEO ROUTES - Sitemap, Robots.txt, Google Verification
+# ---------------------------------------------------------
+@app.route('/sitemap.xml')
+def sitemap_file():
+    """Serve sitemap.xml for search engine crawling"""
+    try:
+        sitemap_path = os.path.join(os.path.dirname(__file__), 'sitemap.xml')
+        if os.path.exists(sitemap_path):
+            with open(sitemap_path, 'r', encoding='utf-8') as f:
+                response = app.make_response(f.read())
+                response.headers['Content-Type'] = 'application/xml'
+                response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
+                return response
+        return ("Sitemap not found", 404)
+    except Exception as e:
+        app.logger.error(f"Error serving sitemap: {e}")
+        return ("Error serving sitemap", 500)
+
+@app.route('/robots.txt')
+def robots():
+    """Serve robots.txt for search engine crawling"""
+    try:
+        robots_path = os.path.join(os.path.dirname(__file__), 'robots.txt')
+        if os.path.exists(robots_path):
+            with open(robots_path, 'r', encoding='utf-8') as f:
+                response = app.make_response(f.read())
+                response.headers['Content-Type'] = 'text/plain'
+                response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
+                return response
+        return ("Robots.txt not found", 404)
+    except Exception as e:
+        app.logger.error(f"Error serving robots.txt: {e}")
+        return ("Error serving robots.txt", 500)
+
+@app.route('/google449e6873ed06daf5.html')
+def google_verification():
+    """Serve Google Search Console verification file"""
+    try:
+        verify_path = os.path.join(os.path.dirname(__file__), 'google449e6873ed06daf5.html')
+        if os.path.exists(verify_path):
+            with open(verify_path, 'r', encoding='utf-8') as f:
+                response = app.make_response(f.read())
+                response.headers['Content-Type'] = 'text/html'
+                return response
+        return ("Verification file not found", 404)
+    except Exception as e:
+        app.logger.error(f"Error serving Google verification file: {e}")
+        return ("Error serving verification file", 500)
+
+# ---------------------------------------------------------
 # HOME / LANDING PAGE
 # ---------------------------------------------------------
 @app.route('/')

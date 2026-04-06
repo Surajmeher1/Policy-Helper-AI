@@ -1,9 +1,91 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- ════════════════════════ SEO META TAGS ════════════════════════ -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Policy Helper AI - Simplify Complex Policies</title>
+  
+  <!-- Primary Meta Tags -->
+  <title>Policy Helper AI - AI-Powered Policy Analysis & Simplification</title>
+  <meta name="title" content="Policy Helper AI - AI-Powered Policy Analysis & Simplification" />
+  <meta name="description" content="Transform complex policies into simple language with Policy Helper AI. AI policy assistant that simplifies legal documents, highlights key information, and answers your policy questions instantly." />
+  <meta name="keywords" content="AI policy assistant, policy helper, policy simplification, legal document analysis, policy explanation tool, AI simplifier, document summarizer" />
+  <meta name="language" content="English" />
+  <meta name="author" content="Policy Helper AI" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://policy-helper-ai.onrender.com/" />
+  
+  <!-- Open Graph / Social Media Meta Tags -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://policy-helper-ai.onrender.com/" />
+  <meta property="og:title" content="Policy Helper AI - Transform Complex Policies Into Simple Language" />
+  <meta property="og:description" content="AI-powered platform to simplify policies, highlight key information, and get instant answers about policy details." />
+  <meta property="og:image" content="https://policy-helper-ai.onrender.com/static/og-image.png" />
+  <meta property="og:site_name" content="Policy Helper AI" />
+  <meta property="og:locale" content="en_US" />
+  
+  <!-- Twitter / X Meta Tags -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://policy-helper-ai.onrender.com/" />
+  <meta property="twitter:title" content="Policy Helper AI - Transform Complex Policies Into Simple Language" />
+  <meta property="twitter:description" content="AI-powered platform to simplify policies, highlight key information, and get instant answers about policy details." />
+  <meta property="twitter:image" content="https://policy-helper-ai.onrender.com/static/og-image.png" />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+  <link rel="shortcut icon" href="/static/favicon.ico" />
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+  <meta name="theme-color" content="#c9a84c" />
+  
+  <!-- JSON-LD Structured Data (Schema.org) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Policy Helper AI",
+    "description": "AI-powered platform to simplify complex policies and legal documents",
+    "url": "https://policy-helper-ai.onrender.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://policy-helper-ai.onrender.com/search?q={search_term_string}"
+      }
+    },
+    "image": "https://policy-helper-ai.onrender.com/static/og-image.png",
+    "sameAs": [
+      "https://twitter.com/policyhelprai",
+      "https://linkedin.com/company/policyhelperai"
+    ]
+  }
+  </script>
+  
+  <!-- Organization Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Policy Helper AI",
+    "description": "AI-powered policy analysis and simplification platform",
+    "url": "https://policy-helper-ai.onrender.com",
+    "logo": "https://policy-helper-ai.onrender.com/static/logo.png",
+    "image": "https://policy-helper-ai.onrender.com/static/og-image.png",
+    "sameAs": [
+      "https://twitter.com/policyhelprai",
+      "https://linkedin.com/company/policyhelperai"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "Customer Support",
+      "email": "support@policyhelprai.com"
+    }
+  }
+  </script>
+
+  <!-- Fonts & Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Literata:wght@500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <style>
@@ -422,86 +504,115 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero" itemscope itemtype="https://schema.org/WebPageElement">
       <div class="hero-content">
-        <div class="hero-badge">
+        <div class="hero-badge" aria-label="AI powered simplification">
           <i class="bi bi-lightning-fill"></i> AI-Powered Simplification
         </div>
-        <h1 class="hero-title">Transform Complex Policies Into Simple Language</h1>
-        <p class="hero-subtitle">
-          Policy Helper AI uses advanced AI to simplify dense legal documents, 
-          highlight key information, and make policies accessible to everyone.
+        <h1 class="hero-title" itemprop="headline">
+          Transform Complex Policies Into Simple Language With AI
+        </h1>
+        <p class="hero-subtitle" itemprop="description">
+          Policy Helper AI is an advanced AI policy assistant that simplifies dense legal documents, 
+          highlights key information, and makes policies accessible to everyone. Get instant explanations 
+          for complex policy language and save hours of confusion.
         </p>
         <div class="hero-buttons">
-          <a href="{{ url_for('register') }}" class="btn-large primary">
+          <a href="{{ url_for('register') }}" class="btn-large primary" aria-label="Start free account today">
             <i class="bi bi-rocket-takeoff"></i> Start Free Today
           </a>
         </div>
       </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
+    <!-- Features Section with better semantic markup -->
+    <section class="features" id="features" aria-label="Policy Helper AI Features">
       <div class="features-container">
         <div class="section-header">
-          <h2 class="section-title">Powerful Features</h2>
-          <p class="section-subtitle">Everything you need to understand complex policies</p>
+          <h2 class="section-title">Powerful AI Features for Policy Analysis</h2>
+          <p class="section-subtitle">Everything you need to understand and analyze complex policies effortlessly</p>
         </div>
 
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon"><i class="bi bi-magic"></i></div>
-            <h3 class="feature-title">AI Simplification</h3>
-            <p class="feature-desc">Converts complex legal language into plain, easy-to-understand text instantly.</p>
+        <div class="features-grid" role="list">
+          <div class="feature-card" role="listitem" itemscope itemtype="https://schema.org/Thing">
+            <div class="feature-icon" aria-hidden="true"><i class="bi bi-magic"></i></div>
+            <h3 class="feature-title" itemprop="name">AI Policy Simplification</h3>
+            <p class="feature-desc" itemprop="description">
+              Converts complex legal language and dense policy text into plain, easy-to-understand language instantly. 
+              Perfect for company policies, legal documents, and terms & conditions.
+            </p>
           </div>
 
-          <div class="feature-card">
-            <div class="feature-icon"><i class="bi bi-brush"></i></div>
-            <h3 class="feature-title">Smart Highlighting</h3>
-            <p class="feature-desc">Automatically highlights dates, amounts, and key terms with color-coded references.</p>
+          <div class="feature-card" role="listitem" itemscope itemtype="https://schema.org/Thing">
+            <div class="feature-icon" aria-hidden="true"><i class="bi bi-brush"></i></div>
+            <h3 class="feature-title" itemprop="name">Smart Highlighting & Analysis</h3>
+            <p class="feature-desc" itemprop="description">
+              Automatically highlights dates, amounts, deadlines, and key terms with color-coded references. 
+              Never miss critical policy details again.
+            </p>
           </div>
 
-          <div class="feature-card">
-            <div class="feature-icon"><i class="bi bi-chat-dots"></i></div>
-            <h3 class="feature-title">Interactive Chat</h3>
-            <p class="feature-desc">Ask questions and get instant AI-powered explanations about policy details.</p>
+          <div class="feature-card" role="listitem" itemscope itemtype="https://schema.org/Thing">
+            <div class="feature-icon" aria-hidden="true"><i class="bi bi-chat-dots"></i></div>
+            <h3 class="feature-title" itemprop="name">Interactive AI Chat Assistant</h3>
+            <p class="feature-desc" itemprop="description">
+              Ask questions about any policy and get instant AI-powered explanations. Our policy explanation 
+              tool answers your questions accurately and clearly.
+            </p>
           </div>
 
-          <div class="feature-card">
-            <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
-            <h3 class="feature-title">History Tracking</h3>
-            <p class="feature-desc">Keep track of all documents you've simplified for easy reference later.</p>
+          <div class="feature-card" role="listitem" itemscope itemtype="https://schema.org/Thing">
+            <div class="feature-icon" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
+            <h3 class="feature-title" itemprop="name">Complete History Tracking</h3>
+            <p class="feature-desc" itemprop="description">
+              Keep track of all documents you've simplified and analyzed for easy reference and quick access later.
+            </p>
           </div>
 
-          <div class="feature-card">
-            <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
-            <h3 class="feature-title">Secure & Private</h3>
-            <p class="feature-desc">Your documents are processed securely with enterprise-grade encryption.</p>
+          <div class="feature-card" role="listitem" itemscope itemtype="https://schema.org/Thing">
+            <div class="feature-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></div>
+            <h3 class="feature-title" itemprop="name">Secure & Private Processing</h3>
+            <p class="feature-desc" itemprop="description">
+              Your documents are processed securely with enterprise-grade encryption. Your data privacy is our priority.
+            </p>
           </div>
 
-          <div class="feature-card">
-            <div class="feature-icon"><i class="bi bi-lightning"></i></div>
-            <h3 class="feature-title">Lightning Fast</h3>
-            <p class="feature-desc">Get results in seconds with our optimized AI processing engine.</p>
+          <div class="feature-card" role="listitem" itemscope itemtype="https://schema.org/Thing">
+            <div class="feature-icon" aria-hidden="true"><i class="bi bi-lightning"></i></div>
+            <h3 class="feature-title" itemprop="name">Lightning Fast Processing</h3>
+            <p class="feature-desc" itemprop="description">
+              Get results in seconds with our optimized AI processing engine. No waiting, instant policy analysis.
+            </p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- CTA Section -->
-    <section class="cta-section" id="cta">
+    <section class="cta-section" id="cta" aria-label="Call to action">
       <div class="cta-box">
-        <h2 class="cta-title">Ready to Simplify Policies?</h2>
-        <p class="cta-desc">Join thousands of users who save time and understand policies better.</p>
-        <a href="{{ url_for('register') }}" class="btn-large primary">
+        <h2 class="cta-title">Ready to Understand Policies Better?</h2>
+        <p class="cta-desc">
+          Join thousands of users who use Policy Helper AI to save time, understand complex policies, 
+          and make informed decisions faster.
+        </p>
+        <a href="{{ url_for('register') }}" class="btn-large primary" aria-label="Create free account now">
           <i class="bi bi-star-fill"></i> Create Free Account
         </a>
       </div>
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
-      <p>&copy; 2024 Policy Helper AI. Transforming complex policies into simple language.</p>
+    <footer class="footer" role="contentinfo" itemscope itemtype="https://schema.org/LocalBusiness">
+      <meta itemprop="name" content="Policy Helper AI" />
+      <meta itemprop="url" content="https://policy-helper-ai.onrender.com" />
+      <p>&copy; 2024 Policy Helper AI. All rights reserved. | 
+        <a href="{{ url_for('login') }}" style="color: inherit; text-decoration: underline;">Sign In</a> | 
+        <a href="{{ url_for('register') }}" style="color: inherit; text-decoration: underline;">Sign Up</a>
+      </p>
+      <p style="margin-top: 8px; font-size: 11px;">
+        Policy Helper AI - Your trusted AI policy assistant for understanding complex policies and documents.
+      </p>
     </footer>
   </main>
 
