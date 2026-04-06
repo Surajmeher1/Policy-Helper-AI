@@ -161,6 +161,17 @@ def log_activity(user_obj_or_username, action, details=None):
         app.logger.exception("Failed to log activity")
 
 # ---------------------------------------------------------
+# DATABASE INITIALIZATION
+# ---------------------------------------------------------
+# Create all tables on app startup (idempotent - safe to call multiple times)
+with app.app_context():
+    try:
+        db.create_all()
+        app.logger.info("✅ Database tables initialized")
+    except Exception as e:
+        app.logger.error(f"⚠️  Failed to initialize database tables: {e}")
+
+# ---------------------------------------------------------
 # HOME / LANDING PAGE
 # ---------------------------------------------------------
 @app.route('/')
