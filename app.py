@@ -319,7 +319,12 @@ def forgot_password():
             flash("An error occurred. Please try again later.", "danger")
             return redirect(url_for('forgot_password'))
 
-    return render_template("forgot_password.html")
+    try:
+        return render_template("forgot_password.html")
+    except Exception as e:
+        app.logger.exception(f"Error rendering forgot_password template: {str(e)}")
+        flash("An error occurred. Please try again.", "danger")
+        return redirect(url_for('login'))
 
 # ---------------------------------------------------------
 # RESET PASSWORD
