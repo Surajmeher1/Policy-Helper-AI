@@ -472,13 +472,17 @@ def get_conversations():
 def create_new_conversation():
     """Create a new chat conversation"""
     if "username" not in session:
+        app.logger.warning("Attempt to create conversation without login")
         return jsonify({"success": False, "error": "Login required"}), 401
     
     try:
         username = session.get('username')
+        app.logger.info(f"Creating conversation for user: {username}")
+        
         user = User.query.filter_by(username=username).first()
         
         if not user:
+            app.logger.error(f"User not found: {username}")
             return jsonify({"success": False, "error": "User not found"}), 404
         
         # Create new conversation with default title
@@ -489,6 +493,8 @@ def create_new_conversation():
         db.session.add(new_conversation)
         db.session.commit()
         
+        app.logger.info(f"Conversation created successfully (ID: {new_conversation.id})")
+        
         return jsonify({
             "success": True,
             "conversation_id": new_conversation.id,
@@ -497,6 +503,7 @@ def create_new_conversation():
     
     except Exception as e:
         db.session.rollback()
+        app.logger.exception(f"Error creating conversation: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/chat/<int:conversation_id>/messages', methods=['GET'])

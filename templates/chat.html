@@ -1137,20 +1137,20 @@
             const data = await response.json();
             
             if (!data.success) {
-                console.error('Failed to load conversations');
+                console.error('Failed to load conversations:', data.error);
                 return;
             }
 
             const list = document.getElementById('conversationsList');
-            const conversations = data.conversations;
+            const conversations = data.conversations || [];
 
             if (conversations.length === 0) {
                 list.innerHTML = '<div class="sidebar-empty">No conversations yet</div>';
                 return;
             }
 
-            html = conversations.map(conv => {
-                const title = conv.title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            let html = conversations.map(conv => {
+                const title = (conv.title || 'Untitled').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 return `<div class="conversation-item" onclick="loadConversation(${conv.id})">
                     <span class="conversation-title">${title}</span>
                     <button class="conversation-delete" onclick="deleteConversation(event, ${conv.id})">×</button>
@@ -1174,17 +1174,19 @@
             const data = await response.json();
 
             if (!data.success) {
-                showError('Failed to create new conversation');
+                const errorMsg = data.error || 'Failed to create new conversation';
+                showError(`Error: ${errorMsg}`);
+                console.error('Failed to create conversation:', data.error);
                 return;
             }
 
             currentConversationId = data.conversation_id;
             clearMessages();
-            loadConversations();
+            await loadConversations();
             document.getElementById('queryInput').focus();
         } catch (error) {
-            showError('Failed to create new conversation');
-            console.error(error);
+            showError(`Failed to create conversation: ${error.message}`);
+            console.error('Error creating conversation:', error);
         }
     }
 
@@ -1248,7 +1250,7 @@
 
     function clearMessages() {
         const inner = document.getElementById('messagesInner');
-        empty = document.createElement('div');
+        const empty = document.createElement('div');
         empty.id = 'emptyState';
         empty.className = 'empty-state';
         empty.innerHTML = `
@@ -1257,7 +1259,7 @@
             <p>Ask me anything about laws, legal concepts, or government policies in plain language.</p>
         `;
         
-        loader = document.createElement('div');
+        const loader = document.createElement('div');
         loader.id = 'loadingIndicator';
         loader.className = 'loading-msg';
         loader.innerHTML = `
