@@ -372,10 +372,11 @@ If you didn't request this, please ignore this email.
             if email_sent:
                 flash("✅ Reset link sent to your email. Check spam folder if needed.", "success")
             else:
-                flash("⚠️ Email service unavailable. Please contact administrator.", "warning")
+                flash("⚠️ Email service unavailable. Reset link shown below - save it or copy it.", "warning")
             
             log_activity(user, "forgot_password", details="Password reset requested")
-            return redirect(url_for('login'))
+            # Show reset page with link (if email fails, user can still reset via link shown on page)
+            return render_template("reset_password_link.html", reset_url=reset_url, email=email, email_sent=email_sent)
         
         except Exception as e:
             app.logger.exception(f"🔴 FORGOT_PASSWORD ERROR: {e}")
