@@ -5,7 +5,6 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy.exc import IntegrityError
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import language_tool_python
 import textstat
 import re
@@ -19,8 +18,6 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL_NAME = "llama-3.3-70b-versatile"
-HF_MODEL_NAME = os.getenv("HF_MODEL_NAME", "facebook/bart-large-cnn")
-HF_TOKEN = os.getenv("HF_TOKEN")
 # ---------------------------------------------------------
 # Flask App Configuration
 # ---------------------------------------------------------
@@ -425,28 +422,11 @@ def clear_chat_history_api():
 # NLP MODEL + TOOLS (original logic)
 # ---------------------------------------------------------
 # Lazy load BART model only when needed (not at startup)
-tokenizer = None
-model = None
-
 try:
     tool = language_tool_python.LanguageTool('en-US')
 except Exception:
     tool = None
     app.logger.warning("language_tool_python unavailable (likely missing Java). Grammar correction disabled.")
-
-def load_model():
-    """Load BART model lazily when first needed"""
-    global tokenizer, model
-    if tokenizer is None or model is None:
-        try:
-            print("Loading BART model... this may take a moment")
-            tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME, token=HF_TOKEN)
-            model = AutoModelForSeq2SeqLM.from_pretrained(HF_MODEL_NAME, token=HF_TOKEN)
-            print("BART model loaded successfully")
-        except Exception as e:
-            print(f"Error loading BART model: {e}")
-            raise
-    return tokenizer, model
 
 LEXICAL_MAP = {
     "pursuant to": "under",
@@ -536,16 +516,49 @@ def improve_readability(text):
     return text
 
 def ml_simplify(text):
-    global tokenizer, model
-    # Load model on first use
-    tok, mdl = load_model()
-    
-    inp = tok.encode(text, return_tensors="pt", max_length=1024, truncation=True)
-    output = mdl.generate(inp, max_length=150, min_length=40, num_beams=4)
-    summarized = tok.decode(output[0], skip_special_tokens=True)
-    summarized = simplify_lexically(summarized)
-    summarized = correct_grammar(summarized)
-    return summarized.strip()
+    """Simplify text using Groq API instead of local BART model"""
+    try:
+        # Use Groq API for text simplification - more efficient than local model
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {GROQ_API_KEY}"
+        }
+
+        payload = {
+            "model": MODEL_NAME,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"""Please simplify and summarize the following text. Make it clear and easy to understand for a general audience. 
+Keep the main points but use simpler language. Return only the simplified text without any additional commentary.
+
+Text to simplify:
+{text}"""
+                }
+            ],
+            "temperature": 0.5,
+            "max_tokens": 500
+        }
+
+        response = requests.post(GROQ_API_URL, json=payload, headers=headers)
+        
+        if response.status_code != 200:
+            # Fallback to lexical simplification if API fails
+            app.logger.warning(f"Groq API error for simplification: {response.text}")
+            return simplify_lexically(text)
+
+        result = response.json()
+        simplified = result["choices"][0]["message"]["content"]
+        
+        # Apply additional simplifications
+        simplified = simplify_lexically(simplified)
+        simplified = correct_grammar(simplified)
+        return simplified.strip()
+        
+    except Exception as e:
+        app.logger.error(f"Error in ml_simplify: {e}")
+        # Fallback - still provide some simplification without API
+        return simplify_lexically(text)
 
 def highlight_entities(text):
     # Dates, durations - Orange/Amber highlight
